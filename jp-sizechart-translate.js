@@ -1,5 +1,5 @@
 /**
- * Liberaturs — 日本市场尺码表日文翻译脚本 v2.1 (2026-11-10)
+ * Liberaturs — 日本市场尺码表日文翻译脚本 v2.2 (2026-11-10)
  *
  * 背景：尺码表应用只有一份内容（不支持按语言分内容，已逆向其 admin/前端代码确认），
  * 且应用按选项「显示名」匹配 Size 属性（options.find(o => o.name === chart.attributeName)），
@@ -7,8 +7,8 @@
  *
  * v2 方案：在日本站语言路径（/ja/、/ja-jp/）上自给自足——
  *  1. 复用尺码表应用的公开前台 API 拉取商品尺码表数据
- *  2. 应用没注入按钮时，自己渲染一个同款「サイズガイド」按钮（复用官方 CSS class，外观原生）
- *  3. 点击后自渲染弹窗（同样复用官方 class），内容用内置词表实时翻成日文
+ *  2. 应用没注入按钮时，自己渲染一个同款「サイズガイド」按钮（复用官方按钮 CSS class，外观原生）
+ *  3. 点击后自渲染弹窗（样式自带，官方 modal CSS 在懒加载 chunk 里不能依赖），内容用内置词表实时翻成日文
  * 欧美页面完全不受影响（路径门 + 无数据时不注入）。
  *
  * 翻译匹配策略：
@@ -436,14 +436,17 @@
   }
 
   var tries = 0;
+  var started = false;
   var timer = setInterval(function () {
     tries++;
-    if (tries > 30) { clearInterval(timer); return; } // 15s 放弃
+    if (tries > 60) { clearInterval(timer); return; } // 30s 放弃
     var group = findSizeGroup();
     if (!group) return;
-    clearInterval(timer);
     var pid = getProductId();
-    if (!pid) return;
+    if (!pid) return; // 应用的产品数据还没就位，下一轮再试（不能就此放弃）
+    if (started) return;
+    started = true;
+    clearInterval(timer);
     // 给官方应用 2s 宽限：若它自己注入了按钮就不用我们补
     setTimeout(function () {
       if (document.querySelector('.plugin-ruler__entry')) return;
