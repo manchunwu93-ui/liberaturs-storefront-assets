@@ -1,5 +1,5 @@
 /**
- * Liberaturs — 日本市场尺码表日文翻译脚本 v2.2 (2026-11-10)
+ * Liberaturs — 日本市场尺码表日文翻译脚本 v2.3 (2026-11-10)
  *
  * 背景：尺码表应用只有一份内容（不支持按语言分内容，已逆向其 admin/前端代码确认），
  * 且应用按选项「显示名」匹配 Size 属性（options.find(o => o.name === chart.attributeName)），
@@ -7,8 +7,8 @@
  *
  * v2 方案：在日本站语言路径（/ja/、/ja-jp/）上自给自足——
  *  1. 复用尺码表应用的公开前台 API 拉取商品尺码表数据
- *  2. 应用没注入按钮时，自己渲染一个同款「サイズガイド」按钮（复用官方按钮 CSS class，外观原生）
- *  3. 点击后自渲染弹窗（样式自带，官方 modal CSS 在懒加载 chunk 里不能依赖），内容用内置词表实时翻成日文
+ *  2. 应用没注入按钮时，自己渲染一个同款「サイズガイド」按钮（复用官方 CSS class，外观原生）
+ *  3. 点击后自渲染弹窗（同样复用官方 class），内容用内置词表实时翻成日文
  * 欧美页面完全不受影响（路径门 + 无数据时不注入）。
  *
  * 翻译匹配策略：
@@ -25,7 +25,7 @@
   function norm(s) {
     return s
       .replace(/[‐‑‒–—]/g, '-') // 各种连字符统一
-      .replace(/[   ]/g, ' ')
+      .replace(/[   ]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -96,14 +96,31 @@
   Object.keys(HEADERS).forEach(function (k) { HEADER_KEYS[norm(k).toLowerCase()] = HEADERS[k]; });
 
   /* ---------- 2. 备注 / 段落（正则替换，按序执行） ---------- */
+  var NAME_JP = {
+    'M51 colorblock cargo pants': 'M51 カラーブロックカーゴパンツ',
+    'baggy functional pants': 'バギーファンクショナルパンツ',
+    'cargo camo utility pants': 'カモフラージュカーゴユーティリティパンツ',
+    'cargo denim shorts': 'カーゴデニムショーツ',
+    'cargo logger pants': 'カーゴロガーパンツ',
+    'cargo patch pocket pants': 'カーゴパッチポケットパンツ',
+    'cargo utility pants': 'カーゴユーティリティパンツ',
+    'commuter brushed pants': 'コミューターブラッシュドパンツ',
+    'commuter patchwork pants': 'コミューターパッチワークパンツ',
+    'garment dyed sweatpants with elastic waist': 'ガーメントダイ ゴムウエストスウェットパンツ',
+    'nylon cargo pants': 'ナイロンカーゴパンツ',
+    'outdoor functional paratrooper pants': 'アウトドアファンクショナルパラトルーパーパンツ',
+    'wide leg cargo pants': 'ワイドレッグカーゴパンツ'
+  };
+  function jpName(g1) { return NAME_JP[g1] || g1; }
   var SENTENCES = [
     // --- 备注行 ---
     ['1inch = 2\\.54cm', '1インチ＝2.54cm'],
     ['Manual measurement, 0\\.4-1\\.2 variance allowed\\.', '手動測定のため、0.4～1.2の誤差があります。'],
     ['\\*Manual measurement, 0\\.4"-1\\.2" variance allowed\\.', '手動測定のため、0.4～1.2インチの誤差があります。'],
-    ['All manual measurements carry a 2[\\u2010\\u2011\\u2012\\u2013\\u2014-]3cm production tolerance,? slight dimensional variance is normal\\.', 'すべて手動測定のため、2～3cmの誤差があります。'],
-    ['Manual measurements carry a 2[\\u2010\\u2011\\u2012\\u2013\\u2014-]3cm tolerance\\.', '手動測定のため、2～3cmの誤差があります。'],
-    ['All manual measurements carry a 2[\\u2010\\u2011\\u2012\\u2013\\u2014-]3cm production tolerance\\.', 'すべて手動測定のため、2～3cmの誤差があります。'],
+    ['\\*?All manual measurements carry a 2[\\u2010\\u2011\\u2012\\u2013\\u2014-]3cm production tolerance,? slight dimensional variance is normal\\.', 'すべて手動測定のため、2～3cmの誤差があります。'],
+    ['\\*?Manual measurements carry a 2[\\u2010\\u2011\\u2012\\u2013\\u2014-]3cm tolerance\\.', '手動測定のため、2～3cmの誤差があります。'],
+    ['\\*?All manual measurements carry a 2[\\u2010\\u2011\\u2012\\u2013\\u2014-]3cm production tolerance\\.', 'すべて手動測定のため、2～3cmの誤差があります。'],
+    ['\\*?All manual measurements carry a 2[\\u2010\\u2011\\u2012\\u2013\\u2014-]3cm pro(?:duction tolerance,? slight dimensional variance is normal\\.?|du\\.\\.\\.|\\.\\.\\.)?', 'すべて手動測定のため、2～3cmの誤差があります。'],
     ['ABBREVIATIONS', '国名略号'],
     ['EU=European Union', 'EU＝欧州連合'],
     ['United Kingdom', '英国'],
@@ -137,8 +154,7 @@
     ['Lay the garment flat with the back facing up\\. Measure from the center of the back neck seam straight down vertically to the bottom hem of the garment\\. Do not double\\.', '商品を裏側が上になるように平置きし、後ろ襟の中心から裾までまっすぐ垂直に測ります。2倍にはしません。'],
     ['(?:Tips:? )?Use a soft,? flexible measuring tape for the most accurate results\\.', 'ヒント：正確に測るには柔らかいメジャーをご使用ください。'],
     ['(?:Tips:? )?Use a soft measuring tape for the most accurate results\\.', 'ヒント：正確に測るには柔らかいメジャーをご使用ください。'],
-    ['Always compare your measurements to the', '必ず当店のサイズ表の'],
-    ['in our size chart \\(do not use your body measurements\\)\\.', '商品の実寸と比較してください（お身体のサイズではありません）。'],
+    ['Always compare your measurements to the garment measurements in our size chart \\(do not use your body measurements\\)\\.', '必ずお身体のサイズではなく、当店のサイズ表に記載の商品実寸と比較してください。'],
     ['If your measurements fall between two sizes, size up for a more relaxed fit, or size down for a slimmer,? neater fit\\.', 'サイズの間に当てはまる場合、ゆったりめがお好みならワンサイズアップ、すっきりめならワンサイズダウンをおすすめします。'],
     ['For layering styles \\(e\\.g\\. jackets, overshirts\\), we recommend sizing up to accommodate thick inner layers\\.', '重ね着するアウターやオーバーシャツは、厚手のインナーに対応できるようワンサイズアップをおすすめします。'],
     ['Size up if you plan to layer thick inner wear\\.', '厚手のインナーを重ねる場合はワンサイズアップをおすすめします。'],
@@ -198,10 +214,10 @@
     ['This is a non-stretch relaxed fit cargo denim shorts\\. Size up 1 size if you prefer a looser fit, or plan to wear with a belt\\.', 'こちらは伸縮性のないリラックスフィットのカーゴデニムショーツです。ゆったりめがお好み、またはベルトで着用したい場合はワンサイズアップをおすすめします。'],
     ['This is an oversized fit down insulated vest with an extended back hem\\. Size down 1 size if you prefer a less voluminous fit\\.', 'こちらはバックヘムが長めのオーバーサイズフィットのダウンベストです。ボリュームを抑えたい場合はワンサイズダウンをおすすめします。'],
     ['This is a comfort fit sanforized selvedge jeans\\. Size up 1 size if you prefer a looser fit, or plan to break in the denim\\. If your measurements fall between sizes, choose the larger size for a more roomy fit\\.', 'こちらは防縮加工を施したセルビッジジーンズのコンフォートフィットです。ゆったりめがお好み、またはデニムを馴らして穿く予定の場合はワンサイズアップをおすすめします。サイズの間に当てはまる場合は、ゆとりのある大きいサイズをお選びください。'],
-    ['This is a relaxed fit ([^.]+)\\. Size up 1 size if you prefer a looser fit, or plan to layer underneath\\. If your measurements fall between sizes, choose the larger size for a more roomy fit\\.', function (m, g1) { return 'こちらはリラックスフィットの' + g1 + 'です。ゆったりめがお好み、または重ね着をご希望の場合はワンサイズアップをおすすめします。サイズの間に当てはまる場合は、ゆとりのある大きいサイズをお選びください。'; }],
-    ['This is a relaxed fit ([^.]+)\\. Size up 1 size if you prefer a looser fit, or plan to layer underneath\\.', function (m, g1) { return 'こちらはリラックスフィットの' + g1 + 'です。ゆったりめがお好み、または重ね着をご希望の場合はワンサイズアップをおすすめします。'; }],
-    ['This is a relaxed fit ([^.]+)\\. Size up 1 size if you prefer a looser fit\\.', function (m, g1) { return 'こちらはリラックスフィットの' + g1 + 'です。ゆったりめがお好みの場合はワンサイズアップをおすすめします。'; }],
-    ['This is a relaxed fit ([^.]+)\\. Size up 1 size if you prefer an even roomier fit\\.', function (m, g1) { return 'こちらはリラックスフィットの' + g1 + 'です。さらにゆったりめがお好みの場合はワンサイズアップをおすすめします。'; }],
+    ['This is a relaxed fit ([^.]+)\\. Size up 1 size if you prefer a looser fit, or plan to layer underneath\\. If your measurements fall between sizes, choose the larger size for a more roomy fit\\.', function (m, g1) { g1 = jpName(g1); return 'こちらはリラックスフィットの' + g1 + 'です。ゆったりめがお好み、または重ね着をご希望の場合はワンサイズアップをおすすめします。サイズの間に当てはまる場合は、ゆとりのある大きいサイズをお選びください。'; }],
+    ['This is a relaxed fit ([^.]+)\\. Size up 1 size if you prefer a looser fit, or plan to layer underneath\\.', function (m, g1) { g1 = jpName(g1); return 'こちらはリラックスフィットの' + g1 + 'です。ゆったりめがお好み、または重ね着をご希望の場合はワンサイズアップをおすすめします。'; }],
+    ['This is a relaxed fit ([^.]+)\\. Size up 1 size if you prefer a looser fit\\.', function (m, g1) { g1 = jpName(g1); return 'こちらはリラックスフィットの' + g1 + 'です。ゆったりめがお好みの場合はワンサイズアップをおすすめします。'; }],
+    ['This is a relaxed fit ([^.]+)\\. Size up 1 size if you prefer an even roomier fit\\.', function (m, g1) { g1 = jpName(g1); return 'こちらはリラックスフィットの' + g1 + 'です。さらにゆったりめがお好みの場合はワンサイズアップをおすすめします。'; }],
     ['This is a relaxed fit style\\. Size up 1 size if you prefer a looser fit, or plan to layer underneath\\. If your measurements fall between sizes, choose the larger size for a more roomy fit\\.', 'こちらはリラックスフィットです。ゆったりめがお好み、または重ね着をご希望の場合はワンサイズアップをおすすめします。サイズの間に当てはまる場合は、ゆとりのある大きいサイズをお選びください。'],
     ['If your measurements fall between sizes, choose the larger size for a more roomy fit\\.', 'サイズの間に当てはまる場合は、ゆとりのある大きいサイズをお選びください。'],
     ['If your measurements fall between sizes, choose the larger size for a more comfortable wide leg silhouette\\.', 'サイズの間に当てはまる場合は、ワイドシルエットを快適に着こなせる大きいサイズをお選びください。'],
@@ -209,6 +225,20 @@
     ['Size up 1 size if you prefer a looser fit, or plan to layer underneath\\.', 'ゆったりめがお好み、または重ね着をご希望の場合はワンサイズアップをおすすめします。'],
     ['Size up 1 size if you prefer a looser fit\\.', 'ゆったりめがお好みの場合はワンサイズアップをおすすめします。'],
     ['Size up 1 size if you prefer an even roomier fit\\.', 'さらにゆったりめがお好みの場合はワンサイズアップをおすすめします。'],
+
+    // --- 混合大小写测量部位（富文本内） ---
+    ['Waist \\(Flat Width, Relaxed-Stretched\\)', 'ウエスト（自然時〜最大伸長）'],
+    ['Chest \\(Pit to Pit\\)', '胸幅（脇下）'],
+    ['Waist \\(Flat Width\\)', 'ウエスト'],
+    ['Hip \\(Flat Width\\)', 'ヒップ'],
+    ['Thigh \\(Flat Width\\)', 'もも幅'],
+    ['Outseam Length', '総丈'],
+    ['Front Rise', '前股上'],
+    ['Back Rise', '後ろ股上'],
+    ['Leg Opening', '裾幅'],
+    ['Raglan Sleeve', 'ラグラン袖丈'],
+    ['Front Body Length', '前身頃'],
+    ['Back Body Length', '後ろ身頃'],
 
     // --- Fit callouts ---
     ['RELAXED FIT', 'リラックスフィット'],
@@ -341,6 +371,22 @@
       .catch(function () { return null; });
   }
 
+
+  /* v2.3：句子级翻译（备注纯文本 / 富文本 HTML 共用 SENTENCES 词表） */
+  function applySentences(text) {
+    if (!text) return text;
+    var out = text.replace(/&nbsp;|\u00a0/g, ' ').replace(/\s+/g, ' ');
+    for (var i = 0; i < SENT_RE.length; i++) {
+      out = out.replace(SENT_RE[i][0], SENT_RE[i][1]);
+    }
+    return out;
+  }
+  function translateRichHtml(html) {
+    if (!html) return html;
+    if (!RICH_HINT.test(html.replace(/<[^>]+>/g, ' '))) return html;
+    return applySentences(html);
+  }
+
   /* 弹窗自带样式（官方 modal CSS 在懒加载 chunk 里，不能依赖） */
   var SG_CSS =
     '#jpSizeGuideModal{position:fixed;inset:0;z-index:1031}' +
@@ -354,7 +400,12 @@
     '#jpSizeGuideModal .jp-sg-col{flex:1 1 auto;min-width:72px}' +
     '#jpSizeGuideModal .jp-sg-col:first-child{font-weight:600}' +
     '#jpSizeGuideModal .jp-sg-cell{padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;white-space:nowrap}' +
-    '#jpSizeGuideModal .jp-sg-remark{font-size:12px;color:#666;margin-top:10px;white-space:normal;line-height:1.6}';
+    '#jpSizeGuideModal .jp-sg-remark{font-size:12px;color:#666;margin-top:10px;white-space:normal;line-height:1.6}' +
+    '#jpSizeGuideModal .jp-sg-img{margin:12px 0}' +
+    '#jpSizeGuideModal .jp-sg-rich{font-size:13px;line-height:1.7;margin-top:8px;white-space:normal}' +
+    '#jpSizeGuideModal .jp-sg-rich h3,#jpSizeGuideModal .jp-sg-rich h4{font-size:14px;margin:12px 0 6px}' +
+    '#jpSizeGuideModal .jp-sg-rich ol{padding-left:18px;margin:6px 0}' +
+    '#jpSizeGuideModal .jp-sg-rich li{margin-bottom:6px}';
   function ensureSgCss() {
     if (document.getElementById('jpSgCss')) return;
     var st = document.createElement('style');
@@ -371,20 +422,29 @@
       var rows = c.sizeChartBody || [];
       var cols = 0, r, q;
       for (r = 0; r < rows.length; r++) { if (rows[r] && rows[r].length > cols) cols = rows[r].length; }
-      if (!cols) continue;
-      var colHtml = '';
-      for (q = 0; q < cols; q++) {
-        var cells = '';
-        for (r = 0; r < rows.length; r++) {
-          var v = rows[r] ? rows[r][q] : '';
-          cells += '<div class="jp-sg-cell">' + esc(v) + '</div>';
-        }
-        colHtml += '<div class="jp-sg-col">' + cells + '</div>';
+      if (c.sizeChartTitle) {
+        bodyHtml += '<div class="jp-sg-chart-title">' + esc(c.sizeChartTitle) + '</div>';
       }
-      bodyHtml += '<div class="jp-sg-chart-title">' + esc(c.sizeChartTitle || '') + '</div>' +
-        '<div class="jp-sg-grid">' + colHtml + '</div>';
+      if (cols) {
+        var colHtml = '';
+        for (q = 0; q < cols; q++) {
+          var cells = '';
+          for (r = 0; r < rows.length; r++) {
+            var v = rows[r] ? rows[r][q] : '';
+            cells += '<div class="jp-sg-cell">' + esc(v) + '</div>';
+          }
+          colHtml += '<div class="jp-sg-col">' + cells + '</div>';
+        }
+        bodyHtml += '<div class="jp-sg-grid">' + colHtml + '</div>';
+      }
       if (c.sizeChartRemark) {
-        bodyHtml += '<div class="jp-sg-remark">' + esc(c.sizeChartRemark) + '</div>';
+        bodyHtml += '<div class="jp-sg-remark">' + esc(applySentences(c.sizeChartRemark)) + '</div>';
+      }
+      if (c.image && !cols) {
+        bodyHtml += '<div class="jp-sg-img"><img src="' + esc(c.image) + '" alt="Size Chart" style="max-width:100%"></div>';
+      }
+      if (c.text) {
+        bodyHtml += '<div class="jp-sg-rich">' + translateRichHtml(c.text) + '</div>';
       }
     }
     if (!bodyHtml) return null;
