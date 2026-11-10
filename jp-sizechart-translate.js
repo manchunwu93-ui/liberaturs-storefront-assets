@@ -15,6 +15,7 @@
  *  1. 表头/标题：规范化空白/连字符后精确匹配（HEADERS 表）
  *  2. 富文本段落：句子级正则替换（SENTENCES 表，按序执行）
  * MutationObserver 同时覆盖应用自己渲染的弹窗（若官方按钮未来恢复）。
+ * v2.3.1：注入内容加 translate="no" + notranslate，防止 Google 网页自动翻译把已译好的日文再机翻成英文乱码。
  */
 (function () {
   if (!/\/(ja|ja-jp)\//.test(location.pathname)) return; // 日本站语言路径（ja-jp 会 301 到 ja）
@@ -451,6 +452,8 @@
     ensureSgCss();
     var wrap = document.createElement('div');
     wrap.id = 'jpSizeGuideModal';
+    wrap.setAttribute('translate', 'no');
+    wrap.className = 'notranslate';
     wrap.innerHTML =
       '<div class="jp-sg-mask"></div>' +
       '<div class="jp-sg-card">' +
@@ -478,8 +481,9 @@
     var head = group.querySelector('.variant-picker__group-head');
     if (head && !/ruler-size-title-space-between/.test(head.className)) head.className += ' ruler-size-title-space-between';
     var entry = document.createElement('div');
-    entry.className = 'plugin-ruler__entry ruler-direction-bottom ruler-size-chart-btn';
+    entry.className = 'plugin-ruler__entry ruler-direction-bottom ruler-size-chart-btn notranslate';
     entry.setAttribute('data-jp-sizeguide', '1');
+    entry.setAttribute('translate', 'no');
     entry.innerHTML = '<div class="size-btn" style="color:rgb(0,0,0);cursor:pointer">' +
       '<span class="size-btn__title" style="font-size:16px;text-decoration:underline">サイズガイド</span></div>';
     entry.addEventListener('click', function (ev) {
