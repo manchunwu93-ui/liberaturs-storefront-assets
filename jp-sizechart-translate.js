@@ -1,8 +1,8 @@
 /**
- * Liberaturs — 日本市场尺码表日文翻译脚本 v1.1 (2026-11-10)
+ * Liberaturs — 日本市场尺码表日文翻译脚本 v1.2 (2026-11-10)
  *
  * 原理：尺码表应用只有一份内容（不支持按语言分内容，已逆向其 admin/前端代码确认）。
- * 本脚本仅在 URL 含 /ja-jp/ 的日本站页面运行，把尺码表弹窗内的
+ * 本脚本仅在日本站语言路径（/ja/ 与 /ja-jp/）运行，把尺码表弹窗内的
  * 表头/标题/备注/测量说明段落替换为日文。欧美页面完全不受影响。
  *
  * 匹配策略：
@@ -11,7 +11,7 @@
  * 用 MutationObserver 覆盖点击弹窗后动态注入的 DOM。
  */
 (function () {
-  if (!/\/ja-jp\//.test(location.pathname)) return;
+  if (!/\/(ja|ja-jp)\//.test(location.pathname)) return; // 日本站语言路径（ja-jp 会 301 到 ja）
   if (window.__libJpSizeChart) return;
   window.__libJpSizeChart = true;
 
@@ -19,7 +19,7 @@
   function norm(s) {
     return s
       .replace(/[‐‑‒–—]/g, '-') // 各种连字符统一
-      .replace(/[ ​-​]/g, ' ')
+      .replace(/[ ​-​]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
