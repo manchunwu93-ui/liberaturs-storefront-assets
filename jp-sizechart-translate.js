@@ -7,8 +7,8 @@
  *
  * v2 方案：在日本站语言路径（/ja/、/ja-jp/）上自给自足——
  *  1. 复用尺码表应用的公开前台 API 拉取商品尺码表数据
- *  2. 应用没注入按钮时，自己渲染一个同款「サイズガイド」按钮（复用官方按钮 CSS class，外观原生）
- *  3. 点击后自渲染弹窗（样式自带，官方 modal CSS 在懒加载 chunk 里不能依赖），内容用内置词表实时翻成日文
+ *  2. 应用没注入按钮时，自己渲染一个同款「サイズガイド」按钮（复用官方 CSS class，外观原生）
+ *  3. 点击后自渲染弹窗（同样复用官方 class），内容用内置词表实时翻成日文
  * 欧美页面完全不受影响（路径门 + 无数据时不注入）。
  *
  * 翻译匹配策略：
@@ -123,8 +123,7 @@
     ['\\*NOTE: If you plan to wear thick sweaters or fleece liners underneath, size up for extra comfort\\.', '厚手のセーターやフリースのインナーを着る場合は、ゆとりのためワンサイズアップをおすすめします。'],
 
     // --- 通用 How to Measure（上衣） ---
-    ['How to Measure \\(Garment Laid Flat\\)', '測り方（平置き採寸）'],
-    ['All measurements are taken with the garment laid flat on a smooth table or floor\\. For full-zip styles, fully zip the garment before measuring; for button-front styles, fasten all buttons\\. Smooth out any wrinkles to ensure accurate results\\.', 'すべてアイテムを平らな床やテーブルに置いて測定しています。フルジップの商品はファスナーを完全に閉じ、ボタン留めの商品はすべてのボタンを閉じてから測定してください。正確な結果を得るためにシワを伸ばしてください。'],
+    ['How to Measure \\(Garment Laid Flat\\)', '測り方（平置き採寸）'],    ['All measurements are taken with the garment laid flat on a smooth table or floor\\. For full-zip styles, fully zip the garment before measuring; for button-front styles, fasten all buttons\\. Smooth out any wrinkles to ensure accurate results\\.', 'すべてアイテムを平らな床やテーブルに置いて測定しています。フルジップの商品はファスナーを完全に閉じ、ボタン留めの商品はすべてのボタンを閉じてから測定してください。正確な結果を得るためにシワを伸ばしてください。'],
     ['CHEST \\(PIT TO PIT\\)', '胸幅（脇下）'],
     ['Lay the garment flat with the front facing up\\. Measure straight across the body from one armpit seam to the opposite armpit seam\\. Double this number to get the full chest circumference\\.', '商品を表側が上になるように平置きし、脇下の縫い目から反対側の脇下の縫い目までまっすぐ測ります。この数値を2倍すると胸囲の目安になります。'],
     ['SHOULDER', '肩幅'],
@@ -238,7 +237,7 @@
     if (!RICH_HINT.test(txt)) return;
     if (/[぀-ヿ一-鿿]/.test(txt) && !/How to Measure|ABBREVIATIONS/.test(txt)) return; // 已翻译过
     var html = el.innerHTML;
-    // &nbsp;/unicode 空白统一为空格，避免正则不匹配（HTML 渲染本就折叠空白，安全）
+    // &nbsp;/unicode 空白统一为空格，避免正则不匹配
     var out = html.replace(/&nbsp;| /g, ' ').replace(/\s+/g, ' ');
     for (var i = 0; i < SENT_RE.length; i++) {
       out = out.replace(SENT_RE[i][0], SENT_RE[i][1]);
