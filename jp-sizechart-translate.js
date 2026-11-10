@@ -25,7 +25,7 @@
   function norm(s) {
     return s
       .replace(/[‐‑‒–—]/g, '-') // 各种连字符统一
-      .replace(/[   ]/g, ' ')
+      .replace(/[ \u00a0\u200a\u200b]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -268,7 +268,7 @@
     if (/[぀-ヿ一-鿿]/.test(txt) && !/How to Measure|ABBREVIATIONS/.test(txt)) return; // 已翻译过
     var html = el.innerHTML;
     // &nbsp;/unicode 空白统一为空格，避免正则不匹配
-    var out = html.replace(/&nbsp;| /g, ' ').replace(/\s+/g, ' ');
+    var out = html.replace(/&nbsp;|\u00a0/g, ' ').replace(/\s+/g, ' ');
     for (var i = 0; i < SENT_RE.length; i++) {
       out = out.replace(SENT_RE[i][0], SENT_RE[i][1]);
     }
@@ -288,7 +288,7 @@
       if (c.childNodes.length === 1 && c.firstChild.nodeType === 3) translateTextNode(c.firstChild);
     }
     // 2) 短标题/按钮/链接精确替换（限制短文本，避免误伤正文）
-    if (root.querySelectorAll) {
+    if (root.queryeterAll) {
       var shorts = root.querySelectorAll('h1,h2,h3,h4,h5,h6,button,a,[role="button"],[role="heading"],span,strong,label,div');
       for (var j = 0; j < shorts.length; j++) {
         var el = shorts[j];
