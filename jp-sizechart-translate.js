@@ -1,14 +1,20 @@
 /**
- * Liberaturs — 日本市场尺码表日文翻译脚本 v1.2 (2026-11-10)
+ * Liberaturs — 日本市场尺码表日文翻译脚本 v2.0 (2026-11-10)
  *
- * 原理：尺码表应用只有一份内容（不支持按语言分内容，已逆向其 admin/前端代码确认）。
- * 本脚本仅在日本站语言路径（/ja/ 与 /ja-jp/）运行，把尺码表弹窗内的
- * 表头/标题/备注/测量说明段落替换为日文。欧美页面完全不受影响。
+ * 背景：尺码表应用只有一份内容（不支持按语言分内容，已逆向其 admin/前端代码确认），
+ * 且应用按选项「显示名」匹配 Size 属性（options.find(o => o.name === chart.attributeName)），
+ * 日本站选项被翻译成「サイズ」后匹配失败，应用不注入 Size Guide 按钮（实测英文站正常、日本站无按钮）。
  *
- * 匹配策略：
- *  1. 表格单元格(th/td)与短文本节点：规范化空白/连字符后做全词精确匹配（HEADERS 表）
- *  2. 富文本段落：对包含测量说明的容器做句子级正则替换（SENTENCES 表，按序执行）
- * 用 MutationObserver 覆盖点击弹窗后动态注入的 DOM。
+ * v2 方案：在日本站语言路径（/ja/、/ja-jp/）上自给自足——
+ *  1. 复用尺码表应用的公开前台 API 拉取商品尺码表数据
+ *  2. 应用没注入按钮时，自己渲染一个同款「サイズガイド」按钮（复用官方 CSS class，外观原生）
+ *  3. 点击后自渲染弹窗（同样复用官方 class），内容用内置词表实时翻成日文
+ * 欧美页面完全不受影响（路径门 + 无数据时不注入）。
+ *
+ * 翻译匹配策略：
+ *  1. 表头/标题：规范化空白/连字符后精确匹配（HEADERS 表）
+ *  2. 富文本段落：句子级正则替换（SENTENCES 表，按序执行）
+ * MutationObserver 同时覆盖应用自己渲染的弹窗（若官方按钮未来恢复）。
  */
 (function () {
   if (!/\/(ja|ja-jp)\//.test(location.pathname)) return; // 日本站语言路径（ja-jp 会 301 到 ja）
@@ -19,7 +25,7 @@
   function norm(s) {
     return s
       .replace(/[‐‑‒–—]/g, '-') // 各种连字符统一
-      .replace(/[ ​-​]/g, ' ')
+      .replace(/[   ]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -232,7 +238,7 @@
     if (/[぀-ヿ一-鿿]/.test(txt) && !/How to Measure|ABBREVIATIONS/.test(txt)) return; // 已翻译过
     var html = el.innerHTML;
     // &nbsp;/unicode 空白统一为空格，避免正则不匹配（HTML 渲染本就折叠空白，安全）
-    var out = html.replace(/&nbsp;| /g, ' ').replace(/\s+/g, ' ');
+    var out = html.replace(/&nbsp;| /g, ' ').replace(/\s+/g, ' ');
     for (var i = 0; i < SENT_RE.length; i++) {
       out = out.replace(SENT_RE[i][0], SENT_RE[i][1]);
     }
@@ -281,4 +287,161 @@
     }
   });
   mo.observe(document.body, { childList: true, subtree: true });
+
+  /* ================= v2：自渲染「サイズガイド」按钮 + 弹窗 ================= */
+  if (!/\/products\//.test(location.pathname)) return;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function getProductId() {
+    try {
+      var g = window.__plugin__ruler__product__;
+      if (g && g.id) return g.id;
+    } catch (e) {}
+    try {
+      var s = window.SL_State;
+      if (s && s.product && s.product.id) return String(s.product.id);
+    } catch (e) {}
+    return null;
+  }
+
+  function findSizeGroup() {
+    var groups = document.querySelectorAll('fieldset.variant-picker__group');
+    for (var i = 0; i < groups.length; i++) {
+      var legend = groups[i].querySelector('.variant-picker__group-label');
+      var t = legend ? legend.textContent.trim() : '';
+      if (t === 'サイズ' || t === 'Size') return groups[i];
+    }
+    // 兜底：带 4 个以上选项的组
+    for (var j = 0; j < groups.length; j++) {
+      if (groups[j].querySelectorAll('.variant-picker__button,label.variant-picker__option').length >= 4) return groups[j];
+    }
+    return null;
+  }
+
+  function fetchChart(pid) {
+    return fetch('/api/bff/product-plugin/front/size-chart/query?productId=' + encodeURIComponent(pid), { credentials: 'include' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var list = j && j.data && j.data.sizeChartList;
+        if (!list || !list.length) return null;
+        var charts = [];
+        for (var i = 0; i < list.length; i++) {
+          try {
+            var items = JSON.parse(list[i].content);
+            for (var k = 0; k < items.length; k++) charts.push(items[k]);
+          } catch (e) {}
+        }
+        return charts.length ? charts : null;
+      })
+      .catch(function () { return null; });
+  }
+
+  /* 按应用官方 DOM 结构渲染弹窗（复用其已加载的 CSS） */
+  function buildModal(charts) {
+    var bodyHtml = '';
+    for (var i = 0; i < charts.length; i++) {
+      var c = charts[i];
+      var rows = c.sizeChartBody || [];
+      var cols = 0, r, q;
+      for (r = 0; r < rows.length; r++) { if (rows[r] && rows[r].length > cols) cols = rows[r].length; }
+      if (!cols) continue;
+      var colHtml = '';
+      for (q = 0; q < cols; q++) {
+        var cells = '';
+        for (r = 0; r < rows.length; r++) {
+          var v = rows[r] ? rows[r][q] : '';
+          cells += '<div class="table__content_row">' + esc(v) + '</div>';
+        }
+        colHtml += '<div class="table__content_col' + (q === 0 ? ' table__content_col__first' : '') + '">' + cells + '</div>';
+      }
+      bodyHtml += '<div class="parduct-size__item"><div class="parduct-size__table productSizeTable">' +
+        '<div class="flex- parduct-size__table__title">' + esc(c.sizeChartTitle || '') + '</div>' +
+        '<div class="parduct-size__table__content"><div class="table__content__overflow" data-scroll-lock-scrollable>' +
+        '<div data-scroll-lock-scrollable class="table__content__overflow-box">' + colHtml +
+        '</div></div></div>';
+      if (c.sizeChartRemark) {
+        bodyHtml += '<div class="parduct-size__table__remark">' + esc(c.sizeChartRemark) + '</div>';
+      }
+      bodyHtml += '</div></div>';
+    }
+    if (!bodyHtml) return null;
+    var wrap = document.createElement('div');
+    wrap.id = 'jpSizeGuideModal';
+    wrap.className = 'ruler-modal__wrapper ruler-modal__visible ruler-modal__visibleAnimation';
+    wrap.style.zIndex = '1031';
+    wrap.innerHTML =
+      '<div class="ruler-modal__mask ruler-modal__closable"></div>' +
+      '<div style="background:rgb(255,255,255)" class="ruler-modal__container size--modal__container">' +
+      '  <div class="ruler-modal__body color-scheme-1">' +
+      '    <div class="sl-vertical-three size--modal__body">' +
+      '      <div class="sl-vertical-three-header sl-flex sl-flex-just-between size--modal__title">' +
+      '        <div class="size--modal__title__text" style="color:#29252c">サイズ表</div>' +
+      '        <div class="size--modal__title__icon jp-sg-close" style="color:#29252c;cursor:pointer">' +
+      '          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.2 4.80005L4.80005 19.2" stroke="currentcolor" stroke-width="1.5"></path><path d="M4.80005 4.79995L19.2001 19.2" stroke="currentcolor" stroke-width="1.5"></path></svg>' +
+      '        </div>' +
+      '      </div>' +
+      '      <div class="sl-vertical-three-main size--modal__body__main" data-scroll-lock-scrollable>' +
+      '        <div class="product-size" style="color:#29252c">' + bodyHtml + '</div>' +
+      '      </div>' +
+      '    </div>' +
+      '  </div>' +
+      '</div>';
+    function close() {
+      wrap.remove();
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    wrap.querySelector('.ruler-modal__mask').addEventListener('click', close);
+    wrap.querySelector('.jp-sg-close').addEventListener('click', close);
+    document.addEventListener('keydown', onKey);
+    return wrap;
+  }
+
+  function injectButton(group, charts) {
+    var head = group.querySelector('.variant-picker__group-head');
+    if (head && !/ruler-size-title-space-between/.test(head.className)) head.className += ' ruler-size-title-space-between';
+    var entry = document.createElement('div');
+    entry.className = 'plugin-ruler__entry ruler-direction-bottom ruler-size-chart-btn';
+    entry.setAttribute('data-jp-sizeguide', '1');
+    entry.innerHTML = '<div class="size-btn" style="color:rgb(0,0,0);cursor:pointer">' +
+      '<span class="size-btn__title" style="font-size:16px;text-decoration:underline">サイズガイド</span></div>';
+    entry.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var old = document.getElementById('jpSizeGuideModal');
+      if (old) old.remove();
+      var modal = buildModal(charts);
+      if (!modal) return;
+      document.body.appendChild(modal);
+      document.body.style.overflow = 'hidden';
+      process(modal); // 表头/备注翻成日文
+    });
+    (head || group).appendChild(entry);
+  }
+
+  var tries = 0;
+  var timer = setInterval(function () {
+    tries++;
+    if (tries > 30) { clearInterval(timer); return; } // 15s 放弃
+    var group = findSizeGroup();
+    if (!group) return;
+    clearInterval(timer);
+    var pid = getProductId();
+    if (!pid) return;
+    // 给官方应用 2s 宽限：若它自己注入了按钮就不用我们补
+    setTimeout(function () {
+      if (document.querySelector('.plugin-ruler__entry')) return;
+      fetchChart(pid).then(function (charts) {
+        if (!charts) return;
+        if (document.querySelector('.plugin-ruler__entry')) return;
+        var g = findSizeGroup();
+        if (g) injectButton(g, charts);
+      });
+    }, 2000);
+  }, 500);
 })();
